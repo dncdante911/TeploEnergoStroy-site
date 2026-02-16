@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= pageTitle %></title>
+    <meta
+      name="description"
+      content="ТОВ ТеплоЭнергоСтрой: монтаж, обслуживание и ремонт промышленных холодильных систем и промышленного оборудования."
+    />
+    <link rel="stylesheet" href="/static/css/styles.css" />
+  </head>
+  <body>
+    <header class="hero" id="home">
+      <nav class="container nav">
+        <div class="logo">ТеплоЭнергоСтрой</div>
+        <div class="nav-links">
+          <a href="#services">Услуги</a>
+          <a href="#projects">Проекты</a>
+          <a href="#about">О компании</a>
+          <a href="#contact">Контакты</a>
+        </div>
+      </nav>
+      <div class="container hero-content">
+        <p class="badge">Промышленный холод • Инженерный сервис • 24/7</p>
+        <h1>Сервис и модернизация промышленного холодильного оборудования</h1>
+        <p>
+          ТОВ «ТеплоЭнергоСтрой» обеспечивает бесперебойную работу холодильных систем на
+          производстве, складах и в логистике. Работаем по SLA и берем ответственность за
+          результат.
+        </p>
+        <a href="#contact" class="btn-primary">Оставить заявку</a>
+      </div>
+    </header>
+
+    <main>
+      <% if (submitted) { %>
+      <section class="container notice success">Спасибо! Ваша заявка успешно отправлена.</section>
+      <% } %>
+
+      <section class="container section" id="services">
+        <h2>Наши услуги</h2>
+        <div class="grid cards">
+          <% services.forEach((service) => { %>
+          <article class="card">
+            <div class="icon"><%= service.icon %></div>
+            <h3><%= service.title %></h3>
+            <p><%= service.description %></p>
+          </article>
+          <% }) %>
+        </div>
+      </section>
+
+      <section class="section section-alt" id="about">
+        <div class="container about-layout">
+          <div>
+            <h2>Почему нас выбирают</h2>
+            <p>
+              Мы комплексно закрываем задачи по промышленному холоду и инженерной
+              инфраструктуре: от диагностики и аварийных ремонтов до долгосрочного сервисного
+              сопровождения предприятия.
+            </p>
+          </div>
+          <ul class="advantages">
+            <% advantages.forEach((item) => { %>
+            <li><%= item %></li>
+            <% }) %>
+          </ul>
+        </div>
+      </section>
+
+      <section class="container section" id="projects">
+        <h2>Реализованные проекты</h2>
+        <div class="grid projects">
+          <% projects.forEach((project) => { %>
+          <article class="project-card">
+            <h3><%= project.title %></h3>
+            <p><strong>Задача:</strong> <%= project.summary %></p>
+            <p><strong>Результат:</strong> <%= project.result %></p>
+          </article>
+          <% }) %>
+        </div>
+      </section>
+
+      <section class="section section-contact" id="contact">
+        <div class="container contact-layout">
+          <div>
+            <h2>Связаться с нами</h2>
+            <p>Оставьте заявку — инженер свяжется с вами для первичной консультации.</p>
+            <div class="contacts-list">
+              <p><strong>Телефон:</strong> +38 (067) 000-00-00</p>
+              <p><strong>Email:</strong> service@teploenergostroy.ua</p>
+              <p><strong>Адрес:</strong> Украина, г. Днепр, ул. Промышленная, 12</p>
+            </div>
+          </div>
+          <form class="contact-form" action="/request" method="post">
+            <label>
+              Тип обращения
+              <select name="requestType" required>
+                <option value="">Выберите...</option>
+                <option value="Аварийный выезд">Аварийный выезд</option>
+                <option value="Плановое ТО">Плановое ТО</option>
+                <option value="Монтаж/модернизация">Монтаж/модернизация</option>
+              </select>
+            </label>
+            <label>
+              Название компании
+              <input type="text" name="company" required />
+            </label>
+            <label>
+              Контактное лицо
+              <input type="text" name="contactName" required />
+            </label>
+            <label>
+              Телефон
+              <input type="tel" name="phone" required />
+            </label>
+            <label>
+              Email
+              <input type="email" name="email" />
+            </label>
+            <label>
+              Тип оборудования
+              <input type="text" name="equipmentType" placeholder="чиллер, камера, компрессор..." />
+            </label>
+            <label>
+              Описание задачи
+              <textarea name="message" rows="4" placeholder="Кратко опишите задачу"></textarea>
+            </label>
+            <button type="submit" class="btn-primary">Отправить заявку</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container">© <%= new Date().getFullYear() %> ТОВ «ТеплоЭнергоСтрой». Все права защищены.</div>
+    </footer>
+  </body>
+</html>
