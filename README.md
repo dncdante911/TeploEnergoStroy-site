@@ -54,3 +54,25 @@ docker-php-ext-install intl
 php -r "echo password_hash('MyStrongPass#2026', PASSWORD_BCRYPT), PHP_EOL;"
 ```
 Поместите результат в `.env` как `ADMIN_PASSWORD_HASH`.
+
+## Как быстро зарезолвить конфликтный PR (когда это full-rewrite ветка)
+Если GitHub показывает `This branch has conflicts that must be resolved` и web editor не может их обработать,
+используйте CLI-скрипт, который делает merge с `origin/main` и для конфликтов оставляет версию текущей ветки (`ours`):
+
+```bash
+./scripts/resolve_conflicts_keep_rewrite.sh
+```
+
+Что делает скрипт:
+1. `git fetch --all --prune`
+2. `git merge --no-ff --no-commit origin/main`
+3. Для всех конфликтных файлов выполняет `git checkout --ours`
+4. Делает commit с резолвом конфликтов
+
+После этого:
+```bash
+git push
+```
+и PR на GitHub станет mergeable.
+
+> Используйте этот подход только когда ваша ветка действительно должна полностью переопределять конфликтующие файлы.
