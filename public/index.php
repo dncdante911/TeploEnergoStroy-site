@@ -33,7 +33,7 @@ $router->post('/review/submit', 'ContactController@submitReview');
 
 // Admin routes
 $router->get('/admin/login', 'AdminController@login');
-$router->post('/admin/auth', 'AdminController@auth');
+$router->post('/admin/auth', 'AdminController@authenticate');
 $router->get('/admin/logout', 'AdminController@logout');
 $router->get('/admin/dashboard', 'AdminController@dashboard');
 $router->get('/admin', 'AdminController@dashboard');

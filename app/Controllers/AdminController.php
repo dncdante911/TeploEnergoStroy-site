@@ -31,7 +31,7 @@ class AdminController extends Controller
         ]);
     }
 
-    public function auth(): void
+    public function authenticate(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('/admin/login');
