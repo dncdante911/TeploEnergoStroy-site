@@ -1,0 +1,23 @@
+{
+  "name": "tes/site",
+  "description": "ТОВ ТеплоЭнергоСтрой — обслуживание промышленных холодильников",
+  "type": "project",
+  "require": {
+    "php": ">=8.4",
+    "ext-pdo": "*",
+    "ext-pdo_mysql": "*",
+    "ext-redis": "*",
+    "ext-intl": "*"
+  },
+  "suggest": {
+    "ext-intl": "Required for Composer/Symfony Console compatibility on some hosts and proper Unicode normalization."
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/"
+    }
+  },
+  "scripts": {
+    "lint": "find app public -name '*.php' -print0 | xargs -0 -n1 php -l"
+  }
+}
