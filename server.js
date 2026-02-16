@@ -8,6 +8,8 @@ initDb();
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
+const host = process.env.HOST || '0.0.0.0';
+const publicUrl = process.env.PUBLIC_URL || `http://localhost:${port}`;
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -79,6 +81,10 @@ app.post('/api/requests', (req, res) => {
   });
 });
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ ok: true });
+});
+
 app.post('/request', (req, res) => {
   const { errors, value } = validateRequest(req.body);
 
@@ -130,6 +136,6 @@ app.use((req, res) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`TeploEnergoStroy site started on http://localhost:${port}`);
+app.listen(port, host, () => {
+  console.log(`TeploEnergoStroy site started on ${publicUrl}`);
 });
