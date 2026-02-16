@@ -4,6 +4,11 @@ storage/cache/*
 !storage/cache/.gitkeep
 storage/logs/*
 !storage/logs/.gitkeep
+storage/sessions/*
+!storage/sessions/.gitkeep
+public/uploads/*
+!public/uploads/.gitkeep
 .DS_Store
 .idea/
 .vscode/
+*.log
