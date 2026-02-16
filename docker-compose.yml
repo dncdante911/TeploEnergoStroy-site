@@ -1,45 +1,71 @@
-version: '3.9'
+version: '3.8'
+
 services:
-  app:
-    image: php:8.4-rc-apache
-    container_name: tes_app
-    working_dir: /var/www/html
-    volumes:
-      - ./:/var/www/html
+  web:
+    image: php:8.4-apache
+    container_name: teploenergo_web
     ports:
-      - "8080:80"
-    environment:
-      APACHE_DOCUMENT_ROOT: /var/www/html/public
-    command: >
-      bash -lc "a2enmod rewrite &&
-      sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf &&
-      docker-php-ext-install pdo pdo_mysql && pecl install redis && docker-php-ext-enable redis &&
-      apache2-foreground"
+      - "80:80"
+    volumes:
+      - .:/var/www/html
     depends_on:
       - db
       - redis
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=teploenergo
+      - DB_USER=root
+      - DB_PASS=root_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    command: >
+      bash -c "
+      docker-php-ext-install pdo pdo_mysql &&
+      pecl install redis &&
+      docker-php-ext-enable redis &&
+      a2enmod rewrite &&
+      echo 'DocumentRoot /var/www/html/public' > /etc/apache2/sites-available/000-default.conf &&
+      echo '<Directory /var/www/html/public>' >> /etc/apache2/sites-available/000-default.conf &&
+      echo '    Options Indexes FollowSymLinks' >> /etc/apache2/sites-available/000-default.conf &&
+      echo '    AllowOverride All' >> /etc/apache2/sites-available/000-default.conf &&
+      echo '    Require all granted' >> /etc/apache2/sites-available/000-default.conf &&
+      echo '</Directory>' >> /etc/apache2/sites-available/000-default.conf &&
+      apache2-foreground
+      "
 
   db:
     image: mariadb:10.11.13
-    container_name: tes_db
-    restart: always
-    environment:
-      MARIADB_DATABASE: teploenergostroy
-      MARIADB_USER: teplo_user
-      MARIADB_PASSWORD: secret
-      MARIADB_ROOT_PASSWORD: root
+    container_name: teploenergo_db
     ports:
-      - "3307:3306"
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: teploenergo
     volumes:
       - db_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
   redis:
     image: redis:7-alpine
-    container_name: tes_redis
+    container_name: teploenergo_redis
     ports:
-      - "6380:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: teploenergo_phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root_password
+    depends_on:
+      - db
 
 volumes:
   db_data:

@@ -1,77 +1,98 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Controllers;
 
-use App\Core\Cache;
-use App\Core\Container;
-use App\Core\Request;
-use App\Core\Response;
-use App\Core\Session;
-use App\Repositories\LeadRepository;
-use App\Repositories\ReviewRepository;
-use App\Repositories\ServiceRepository;
-use App\Validation\Validator;
+use App\Core\Controller;
+use App\Models\Service;
+use App\Models\Review;
+use App\Models\Setting;
 
-final class HomeController
+class HomeController extends Controller
 {
-    public function index(Request $request): void
+    public function index(): void
     {
-        /** @var Cache $cache */
-        $cache = Container::get(Cache::class);
-        /** @var Response $response */
-        $response = Container::get(Response::class);
-        /** @var Session $session */
-        $session = Container::get(Session::class);
+        $services = Service::all();
+        $reviews = Review::featured();
+        $settings = Setting::all();
 
-        $services = $cache->get('site:services');
-        if ($services === null) {
-            $services = (new ServiceRepository(Container::get(\App\Core\Database::class)))->all();
-            $cache->set('site:services', $services, 600);
-        }
-
-        $reviews = $cache->get('site:reviews');
-        if ($reviews === null) {
-            $reviews = (new ReviewRepository(Container::get(\App\Core\Database::class)))->latest();
-            $cache->set('site:reviews', $reviews, 600);
-        }
-
-        $response->view('pages/home', [
+        $this->view('home.index', [
             'services' => $services,
             'reviews' => $reviews,
-            'flashSuccess' => $session->getFlash('success'),
-            'flashErrors' => $session->getFlash('errors', []),
-            'oldInput' => $session->getFlash('old', []),
+            'settings' => $settings,
+            'pageTitle' => 'Головна',
         ]);
     }
 
-    public function contact(Request $request): void
+    public function services(): void
     {
-        /** @var Response $response */
-        $response = Container::get(Response::class);
-        /** @var Session $session */
-        $session = Container::get(Session::class);
+        $services = Service::all();
+        $settings = Setting::all();
 
-        $payload = [
-            'name' => trim((string) $request->input('name', '')),
-            'phone' => trim((string) $request->input('phone', '')),
-            'email' => trim((string) $request->input('email', '')),
-            'company' => trim((string) $request->input('company', '')),
-            'message' => trim((string) $request->input('message', '')),
-            'source_url' => $_SERVER['HTTP_REFERER'] ?? '/',
-        ];
+        $this->view('services.index', [
+            'services' => $services,
+            'settings' => $settings,
+            'pageTitle' => 'Наші послуги',
+        ]);
+    }
 
-        $errors = Validator::validateContact($payload);
+    public function serviceDetail(string $slug): void
+    {
+        $service = Service::findBySlug($slug);
 
-        if ($errors !== []) {
-            $session->flash('errors', $errors);
-            $session->flash('old', $payload);
-            $response->redirect('/#contact');
+        if (!$service) {
+            http_response_code(404);
+            echo '404 - Послугу не знайдено';
+            exit;
         }
 
-        (new LeadRepository(Container::get(\App\Core\Database::class)))->create($payload);
-        $session->flash('success', 'Спасибо! Заявка принята. Наш инженер свяжется с вами в ближайшее время.');
-        $response->redirect('/#contact');
+        $settings = Setting::all();
+
+        $this->view('services.detail', [
+            'service' => $service,
+            'settings' => $settings,
+            'pageTitle' => $service['title'],
+        ]);
+    }
+
+    public function about(): void
+    {
+        $page = \App\Models\Page::findBySlug('about');
+        $settings = Setting::all();
+
+        if (!$page) {
+            http_response_code(404);
+            echo '404 - Сторінку не знайдено';
+            exit;
+        }
+
+        $this->view('pages.show', [
+            'page' => $page,
+            'settings' => $settings,
+            'pageTitle' => $page['title'],
+        ]);
+    }
+
+    public function reviews(): void
+    {
+        $reviews = Review::approved(50);
+        $avgRating = Review::getAverageRating();
+        $settings = Setting::all();
+
+        $this->view('reviews.index', [
+            'reviews' => $reviews,
+            'avgRating' => $avgRating,
+            'settings' => $settings,
+            'pageTitle' => 'Відгуки клієнтів',
+        ]);
+    }
+
+    public function contact(): void
+    {
+        $settings = Setting::all();
+
+        $this->view('contact.index', [
+            'settings' => $settings,
+            'pageTitle' => 'Контакти',
+        ]);
     }
 }

@@ -1,46 +1,59 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Core;
 
-use App\Controllers\AdminController;
-use App\Controllers\ApiController;
-use App\Controllers\HomeController;
-
-final class App
+class App
 {
-    private Config $config;
-    private Session $session;
+    private Router $router;
 
-    public function __construct(private readonly string $basePath)
+    public function __construct()
     {
-        $this->config = new Config($basePath);
-        $this->session = new Session();
-        $this->session->start();
-        Container::set(Config::class, $this->config);
-        Container::set(Database::class, new Database($this->config));
-        Container::set(Cache::class, new Cache($this->config));
-        Container::set(Session::class, $this->session);
-        Container::set(Response::class, new Response());
+        $this->loadEnv();
+        $this->startSession();
+        $this->router = new Router();
+    }
+
+    private function loadEnv(): void
+    {
+        $envFile = __DIR__ . '/../../.env';
+
+        if (file_exists($envFile)) {
+            $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            foreach ($lines as $line) {
+                if (strpos(trim($line), '#') === 0) {
+                    continue;
+                }
+
+                [$name, $value] = explode('=', $line, 2);
+                $_ENV[trim($name)] = trim($value);
+            }
+        }
+    }
+
+    private function startSession(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            $config = require __DIR__ . '/../../config/app.php';
+
+            session_set_cookie_params([
+                'lifetime' => $config['session']['lifetime'],
+                'path' => $config['session']['path'],
+                'domain' => $config['session']['domain'],
+                'secure' => $config['session']['secure'],
+                'httponly' => $config['session']['httponly'],
+            ]);
+
+            session_start();
+        }
+    }
+
+    public function getRouter(): Router
+    {
+        return $this->router;
     }
 
     public function run(): void
     {
-        $router = new Router();
-        $request = new Request();
-
-        $router->get('/', [HomeController::class, 'index']);
-        $router->post('/contact', [HomeController::class, 'contact']);
-        $router->get('/admin', [AdminController::class, 'loginForm']);
-        $router->post('/admin/login', [AdminController::class, 'login']);
-        $router->get('/admin/dashboard', [AdminController::class, 'dashboard']);
-        $router->post('/admin/services', [AdminController::class, 'createService']);
-        $router->post('/admin/logout', [AdminController::class, 'logout']);
-
-        $router->get('/api/services', [ApiController::class, 'services']);
-        $router->get('/api/reviews', [ApiController::class, 'reviews']);
-
-        $router->dispatch($request);
+        $this->router->dispatch();
     }
 }

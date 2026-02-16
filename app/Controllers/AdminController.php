@@ -1,93 +1,288 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Controllers;
 
-use App\Core\Cache;
-use App\Core\Config;
-use App\Core\Container;
-use App\Core\Request;
-use App\Core\Response;
-use App\Core\Session;
-use App\Repositories\LeadRepository;
-use App\Repositories\ServiceRepository;
-use App\Services\AuthService;
+use App\Core\Controller;
+use App\Models\Admin;
+use App\Models\Service;
+use App\Models\Review;
+use App\Models\Contact;
+use App\Models\Page;
+use App\Models\Setting;
 
-final class AdminController
+class AdminController extends Controller
 {
-    private function authService(): AuthService
+    public function __construct()
     {
-        return new AuthService(Container::get(Config::class), Container::get(Session::class));
+        if (!in_array($_SERVER['REQUEST_URI'], ['/admin/login', '/admin/auth'])) {
+            $this->requireAuth();
+        }
     }
 
-    public function loginForm(Request $request): void
+    public function login(): void
     {
-        /** @var Response $response */
-        $response = Container::get(Response::class);
-        /** @var Session $session */
-        $session = Container::get(Session::class);
+        if ($this->auth()) {
+            $this->redirect('/admin/dashboard');
+            return;
+        }
 
-        $response->view('pages/admin-login', [
-            'error' => $session->getFlash('error'),
+        $this->view('admin.login', [
+            'pageTitle' => 'Вхід до адмін-панелі',
         ]);
     }
 
-    public function login(Request $request): void
+    public function auth(): void
     {
-        $email = (string) $request->input('email', '');
-        $password = (string) $request->input('password', '');
-
-        /** @var Response $response */
-        $response = Container::get(Response::class);
-        /** @var Session $session */
-        $session = Container::get(Session::class);
-
-        if ($this->authService()->login($email, $password)) {
-            $response->redirect('/admin/dashboard');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/admin/login');
+            return;
         }
 
-        $session->flash('error', 'Неверный логин или пароль');
-        $response->redirect('/admin');
+        $username = $this->sanitize($this->post('username'));
+        $password = $this->post('password');
+
+        $admin = Admin::authenticate($username, $password);
+
+        if ($admin) {
+            $_SESSION['admin_id'] = $admin['id'];
+            $_SESSION['admin_username'] = $admin['username'];
+            $_SESSION['admin_name'] = $admin['full_name'];
+            $this->redirect('/admin/dashboard');
+        } else {
+            $this->flash('error', 'Невірний логін або пароль');
+            $this->redirect('/admin/login');
+        }
     }
 
-    public function dashboard(Request $request): void
+    public function logout(): void
     {
-        if (!$this->authService()->check()) {
-            Container::get(Response::class)->redirect('/admin');
-        }
+        session_destroy();
+        $this->redirect('/admin/login');
+    }
 
-        $serviceRepository = new ServiceRepository(Container::get(\App\Core\Database::class));
-        $leadRepository = new LeadRepository(Container::get(\App\Core\Database::class));
+    public function dashboard(): void
+    {
+        $stats = [
+            'services' => count(Service::getAllForAdmin()),
+            'reviews_pending' => count(Review::pending()),
+            'contacts_unread' => Contact::countUnread(),
+        ];
 
-        Container::get(Response::class)->view('pages/admin-dashboard', [
-            'services' => $serviceRepository->all(),
-            'leads' => $leadRepository->latest(),
-            'status' => Container::get(Session::class)->getFlash('status'),
+        $recentContacts = array_slice(Contact::all(), 0, 5);
+        $pendingReviews = array_slice(Review::pending(), 0, 5);
+
+        $this->view('admin.dashboard', [
+            'pageTitle' => 'Панель управління',
+            'stats' => $stats,
+            'recentContacts' => $recentContacts,
+            'pendingReviews' => $pendingReviews,
         ]);
     }
 
-    public function createService(Request $request): void
+    // Services Management
+    public function services(): void
     {
-        if (!$this->authService()->check()) {
-            Container::get(Response::class)->redirect('/admin');
-        }
-
-        (new ServiceRepository(Container::get(\App\Core\Database::class)))->create([
-            'title' => trim((string) $request->input('title', '')),
-            'description' => trim((string) $request->input('description', '')),
-            'icon' => trim((string) $request->input('icon', 'snowflake')),
-            'sort_order' => (int) $request->input('sort_order', 999),
+        $services = Service::getAllForAdmin();
+        $this->view('admin.services.index', [
+            'pageTitle' => 'Управління послугами',
+            'services' => $services,
         ]);
-
-        Container::get(Cache::class)->forget('site:services');
-        Container::get(Session::class)->flash('status', 'Услуга добавлена');
-        Container::get(Response::class)->redirect('/admin/dashboard');
     }
 
-    public function logout(Request $request): void
+    public function serviceCreate(): void
     {
-        $this->authService()->logout();
-        Container::get(Response::class)->redirect('/admin');
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $data = [
+                'title' => $this->sanitize($this->post('title')),
+                'slug' => $this->sanitize($this->post('slug')),
+                'description' => $this->sanitize($this->post('description')),
+                'content' => $this->post('content'),
+                'icon' => $this->sanitize($this->post('icon')),
+                'sort_order' => (int)$this->post('sort_order', 0),
+                'is_active' => (int)$this->post('is_active', 1),
+            ];
+
+            Service::create($data);
+            $this->flash('success', 'Послугу додано');
+            $this->redirect('/admin/services');
+        }
+
+        $this->view('admin.services.create', [
+            'pageTitle' => 'Додати послугу',
+        ]);
+    }
+
+    public function serviceEdit(int $id): void
+    {
+        $service = Service::find($id);
+        if (!$service) {
+            $this->flash('error', 'Послугу не знайдено');
+            $this->redirect('/admin/services');
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $data = [
+                'title' => $this->sanitize($this->post('title')),
+                'slug' => $this->sanitize($this->post('slug')),
+                'description' => $this->sanitize($this->post('description')),
+                'content' => $this->post('content'),
+                'icon' => $this->sanitize($this->post('icon')),
+                'sort_order' => (int)$this->post('sort_order', 0),
+                'is_active' => (int)$this->post('is_active', 1),
+            ];
+
+            Service::update($id, $data);
+            $this->flash('success', 'Послугу оновлено');
+            $this->redirect('/admin/services');
+        }
+
+        $this->view('admin.services.edit', [
+            'pageTitle' => 'Редагувати послугу',
+            'service' => $service,
+        ]);
+    }
+
+    public function serviceDelete(int $id): void
+    {
+        Service::delete($id);
+        $this->flash('success', 'Послугу видалено');
+        $this->redirect('/admin/services');
+    }
+
+    // Reviews Management
+    public function reviews(): void
+    {
+        $reviews = Review::all();
+        $this->view('admin.reviews.index', [
+            'pageTitle' => 'Управління відгуками',
+            'reviews' => $reviews,
+        ]);
+    }
+
+    public function reviewApprove(int $id): void
+    {
+        Review::approve($id);
+        $this->flash('success', 'Відгук схвалено');
+        $this->back();
+    }
+
+    public function reviewToggleFeatured(int $id): void
+    {
+        $review = Review::find($id);
+        if ($review) {
+            Review::update($id, ['is_featured' => $review['is_featured'] ? 0 : 1]);
+            $this->flash('success', 'Статус оновлено');
+        }
+        $this->back();
+    }
+
+    public function reviewDelete(int $id): void
+    {
+        Review::delete($id);
+        $this->flash('success', 'Відгук видалено');
+        $this->back();
+    }
+
+    // Contacts Management
+    public function contacts(): void
+    {
+        $contacts = Contact::all();
+        $this->view('admin.contacts.index', [
+            'pageTitle' => 'Заявки на зв\'язок',
+            'contacts' => $contacts,
+        ]);
+    }
+
+    public function contactView(int $id): void
+    {
+        $contact = Contact::find($id);
+        if (!$contact) {
+            $this->flash('error', 'Заявку не знайдено');
+            $this->redirect('/admin/contacts');
+            return;
+        }
+
+        Contact::markAsRead($id);
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $notes = $this->sanitize($this->post('notes'));
+            Contact::markAsProcessed($id, $notes);
+            $this->flash('success', 'Заявку оброблено');
+            $this->redirect('/admin/contacts');
+        }
+
+        $this->view('admin.contacts.view', [
+            'pageTitle' => 'Перегляд заявки',
+            'contact' => $contact,
+        ]);
+    }
+
+    public function contactDelete(int $id): void
+    {
+        Contact::delete($id);
+        $this->flash('success', 'Заявку видалено');
+        $this->redirect('/admin/contacts');
+    }
+
+    // Pages Management
+    public function pages(): void
+    {
+        $pages = Page::all();
+        $this->view('admin.pages.index', [
+            'pageTitle' => 'Управління сторінками',
+            'pages' => $pages,
+        ]);
+    }
+
+    public function pageEdit(int $id): void
+    {
+        $page = Page::find($id);
+        if (!$page) {
+            $this->flash('error', 'Сторінку не знайдено');
+            $this->redirect('/admin/pages');
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $data = [
+                'title' => $this->sanitize($this->post('title')),
+                'content' => $this->post('content'),
+                'meta_title' => $this->sanitize($this->post('meta_title')),
+                'meta_description' => $this->sanitize($this->post('meta_description')),
+                'is_active' => (int)$this->post('is_active', 1),
+            ];
+
+            Page::update($id, $data);
+            $this->flash('success', 'Сторінку оновлено');
+            $this->redirect('/admin/pages');
+        }
+
+        $this->view('admin.pages.edit', [
+            'pageTitle' => 'Редагувати сторінку',
+            'page' => $page,
+        ]);
+    }
+
+    // Settings Management
+    public function settings(): void
+    {
+        $settings = Setting::getAllForAdmin();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            foreach ($_POST as $key => $value) {
+                if (strpos($key, 'setting_') === 0) {
+                    $settingKey = substr($key, 8);
+                    Setting::set($settingKey, $this->sanitize($value));
+                }
+            }
+            $this->flash('success', 'Налаштування збережено');
+            $this->redirect('/admin/settings');
+        }
+
+        $this->view('admin.settings.index', [
+            'pageTitle' => 'Налаштування сайту',
+            'settings' => $settings,
+        ]);
     }
 }

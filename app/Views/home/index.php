@@ -1,0 +1,101 @@
+<?php ob_start(); ?>
+
+<section class="hero">
+    <div class="container">
+        <h1>Професійні рішення для холодильного обладнання</h1>
+        <p>Установка, обслуговування та ремонт промислового холодильного обладнання по всій Україні</p>
+        <a href="/contact" class="btn btn-primary">Замовити консультацію</a>
+    </div>
+</section>
+
+<section class="services">
+    <div class="container">
+        <div class="section-title">
+            <h2>Наші послуги</h2>
+            <p>Комплексні рішення для вашого бізнесу</p>
+        </div>
+
+        <div class="services-grid">
+            <?php foreach ($services as $service): ?>
+                <div class="service-card">
+                    <div class="icon">⚙️</div>
+                    <h3><?= htmlspecialchars($service['title']) ?></h3>
+                    <p><?= htmlspecialchars($service['description']) ?></p>
+                    <a href="/services/<?= htmlspecialchars($service['slug']) ?>" class="btn">Детальніше</a>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<?php if (!empty($reviews)): ?>
+<section class="reviews">
+    <div class="container">
+        <div class="section-title">
+            <h2>Відгуки наших клієнтів</h2>
+            <p>Що кажуть про нас</p>
+        </div>
+
+        <div class="reviews-grid">
+            <?php foreach (array_slice($reviews, 0, 3) as $review): ?>
+                <div class="review-card">
+                    <div class="review-header">
+                        <div class="review-author">
+                            <h4><?= htmlspecialchars($review['company_name']) ?></h4>
+                            <p><?= htmlspecialchars($review['author_name']) ?><?= $review['author_position'] ? ', ' . htmlspecialchars($review['author_position']) : '' ?></p>
+                        </div>
+                        <div class="stars">
+                            <?= str_repeat('⭐', $review['rating']) ?>
+                        </div>
+                    </div>
+                    <div class="review-content">
+                        <p><?= htmlspecialchars($review['content']) ?></p>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="/reviews" class="btn btn-secondary">Всі відгуки</a>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
+<section class="services" style="background: white;">
+    <div class="container">
+        <div class="section-title">
+            <h2>Чому обирають нас</h2>
+            <p>Переваги роботи з нами</p>
+        </div>
+
+        <div class="services-grid">
+            <div class="service-card">
+                <div class="icon">✓</div>
+                <h3>Досвід</h3>
+                <p>Більше 15 років успішної роботи на ринку України</p>
+            </div>
+
+            <div class="service-card">
+                <div class="icon">⚡</div>
+                <h3>Швидкість</h3>
+                <p>Виїзд фахівця протягом 24 годин після звернення</p>
+            </div>
+
+            <div class="service-card">
+                <div class="icon">🛡️</div>
+                <h3>Гарантія</h3>
+                <p>Надаємо гарантію на всі види виконаних робіт</p>
+            </div>
+
+            <div class="service-card">
+                <div class="icon">💼</div>
+                <h3>Професіоналізм</h3>
+                <p>Сертифіковані фахівці з великим досвідом</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<?php $content = ob_get_clean(); ?>
+<?php require __DIR__ . '/../layouts/main.php'; ?>

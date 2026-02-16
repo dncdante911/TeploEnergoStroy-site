@@ -1,48 +1,85 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Core;
 
-final class Router
+class Router
 {
     private array $routes = [];
+    private string $basePath;
 
-    public function get(string $path, callable|array $handler): void
+    public function __construct(string $basePath = '')
     {
-        $this->add('GET', $path, $handler);
+        $this->basePath = $basePath;
     }
 
-    public function post(string $path, callable|array $handler): void
+    public function get(string $path, $handler): void
     {
-        $this->add('POST', $path, $handler);
+        $this->addRoute('GET', $path, $handler);
     }
 
-    public function dispatch(Request $request): mixed
+    public function post(string $path, $handler): void
     {
-        $method = $request->method();
-        $path = $request->path();
+        $this->addRoute('POST', $path, $handler);
+    }
 
-        foreach ($this->routes[$method] ?? [] as $route) {
-            [$routePath, $handler] = $route;
-            if ($routePath === $path) {
-                if (is_array($handler) && count($handler) === 2) {
-                    [$class, $action] = $handler;
-                    return (new $class())->{$action}($request);
-                }
+    private function addRoute(string $method, string $path, $handler): void
+    {
+        $this->routes[] = [
+            'method' => $method,
+            'path' => $this->basePath . $path,
+            'handler' => $handler,
+        ];
+    }
 
-                return $handler($request);
+    public function dispatch(): void
+    {
+        $requestMethod = $_SERVER['REQUEST_METHOD'];
+        $requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+        foreach ($this->routes as $route) {
+            if ($route['method'] !== $requestMethod) {
+                continue;
+            }
+
+            $pattern = $this->getPattern($route['path']);
+
+            if (preg_match($pattern, $requestUri, $matches)) {
+                array_shift($matches);
+                $this->executeHandler($route['handler'], $matches);
+                return;
             }
         }
 
-        http_response_code(404);
-        echo '404 Not Found';
-        return null;
+        $this->notFound();
     }
 
-    private function add(string $method, string $path, callable|array $handler): void
+    private function getPattern(string $path): string
     {
-        $normalized = '/' . trim($path, '/');
-        $this->routes[$method][] = [$normalized === '/' ? '/' : $normalized, $handler];
+        $pattern = preg_replace('/\{(\w+)\}/', '([^/]+)', $path);
+        return '#^' . $pattern . '$#';
+    }
+
+    private function executeHandler($handler, array $params = []): void
+    {
+        if (is_callable($handler)) {
+            call_user_func_array($handler, $params);
+        } elseif (is_string($handler)) {
+            [$controller, $method] = explode('@', $handler);
+            $controllerClass = "App\\Controllers\\$controller";
+
+            if (class_exists($controllerClass)) {
+                $controllerInstance = new $controllerClass();
+                call_user_func_array([$controllerInstance, $method], $params);
+            } else {
+                $this->notFound();
+            }
+        }
+    }
+
+    private function notFound(): void
+    {
+        http_response_code(404);
+        echo '404 - Page Not Found';
+        exit;
     }
 }
