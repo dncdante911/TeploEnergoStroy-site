@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= pageTitle %></title>
+    <link rel="stylesheet" href="/static/css/styles.css" />
+  </head>
+  <body>
+    <main class="container section">
+      <h1>Заявки клиентов</h1>
+      <% if (!requests.length) { %>
+      <p>Пока заявок нет.</p>
+      <% } else { %>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Дата</th>
+              <th>Тип</th>
+              <th>Компания</th>
+              <th>Контакт</th>
+              <th>Телефон</th>
+              <th>Email</th>
+              <th>Оборудование</th>
+              <th>Сообщение</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% requests.forEach((item) => { %>
+            <tr>
+              <td><%= item.id %></td>
+              <td><%= item.created_at %></td>
+              <td><%= item.request_type %></td>
+              <td><%= item.company %></td>
+              <td><%= item.contact_name %></td>
+              <td><%= item.phone %></td>
+              <td><%= item.email || '-' %></td>
+              <td><%= item.equipment_type || '-' %></td>
+              <td><%= item.message || '-' %></td>
+              <td><%= item.status %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <% } %>
+      <p class="small-note">Доступ защищен Basic Auth. Для продакшена задайте ADMIN_USER и ADMIN_PASS в .env.</p>
+    </main>
+  </body>
+</html>
