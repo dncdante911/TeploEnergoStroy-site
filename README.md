@@ -35,9 +35,13 @@ npm start
 
 ```env
 PORT=3000
+HOST=0.0.0.0
+PUBLIC_URL=https://example.com
 ADMIN_USER=admin
 ADMIN_PASS=change_me
 ```
+
+`HOST=0.0.0.0` позволяет принимать подключения снаружи контейнера/сервера (по домену), а `PUBLIC_URL` используется только для корректного URL в логах запуска.
 
 ## API
 
