@@ -25,7 +25,7 @@
             <div class="container">
                 <div class="logo">
                     <h1><?= $settings['site_name'] ?? 'ТОВ "ТеплоЭнергоСтрой"' ?></h1>
-                    <p>Холодильне обладнання для промисловості</p>
+                    <p><?= htmlspecialchars($settings['logo_tagline'] ?? 'Холодильне обладнання для промисловості') ?></p>
                 </div>
 
                 <nav>
@@ -65,12 +65,12 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h3>Про компанію</h3>
+                    <h3><?= htmlspecialchars($settings['footer_about_title'] ?? 'Про компанію') ?></h3>
                     <p><?= $settings['about_company'] ?? 'ТОВ "ТеплоЭнергоСтрой" - ведуча компанія по установці, обслуговуванню та ремонту холодильного обладнання для промислового сектору України.' ?></p>
                 </div>
 
                 <div class="footer-section">
-                    <h3>Послуги</h3>
+                    <h3><?= htmlspecialchars($settings['footer_services_title'] ?? 'Послуги') ?></h3>
                     <ul>
                         <li><a href="/services">Установка обладнання</a></li>
                         <li><a href="/services">Обслуговування та ремонт</a></li>
@@ -80,7 +80,7 @@
                 </div>
 
                 <div class="footer-section">
-                    <h3>Контакти</h3>
+                    <h3><?= htmlspecialchars($settings['footer_contacts_title'] ?? 'Контакти') ?></h3>
                     <ul>
                         <li><?= $settings['site_address'] ?? 'Україна, м. Київ' ?></li>
                         <li>Телефон: <a href="tel:<?= $settings['site_phone'] ?? '' ?>"><?= $settings['site_phone'] ?? '+380 XX XXX XX XX' ?></a></li>
@@ -91,7 +91,7 @@
             </div>
 
             <div class="footer-bottom">
-                <p>&copy; <?= date('Y') ?> <?= $settings['site_name'] ?? 'ТОВ "ТеплоЭнергоСтрой"' ?>. Всі права захищено.</p>
+                <p>&copy; <?= date('Y') ?> <?= $settings['site_name'] ?? 'ТОВ "ТеплоЭнергоСтрой"' ?>. <?= htmlspecialchars($settings['footer_copyright'] ?? 'Всі права захищено') ?>.</p>
             </div>
         </div>
     </footer>
