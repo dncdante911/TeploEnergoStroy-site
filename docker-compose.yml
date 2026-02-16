@@ -1,0 +1,46 @@
+version: '3.9'
+services:
+  app:
+    image: php:8.4-rc-apache
+    container_name: tes_app
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    ports:
+      - "8080:80"
+    environment:
+      APACHE_DOCUMENT_ROOT: /var/www/html/public
+    command: >
+      bash -lc "a2enmod rewrite &&
+      sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf &&
+      docker-php-ext-install pdo pdo_mysql && pecl install redis && docker-php-ext-enable redis &&
+      apache2-foreground"
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: mariadb:10.11.13
+    container_name: tes_db
+    restart: always
+    environment:
+      MARIADB_DATABASE: teploenergostroy
+      MARIADB_USER: teplo_user
+      MARIADB_PASSWORD: secret
+      MARIADB_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    container_name: tes_redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  db_data:
+  redis_data:
