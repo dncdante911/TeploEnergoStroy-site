@@ -1,3 +1,9 @@
-node_modules/
+/vendor/
 .env
-data/*.db
+storage/cache/*
+!storage/cache/.gitkeep
+storage/logs/*
+!storage/logs/.gitkeep
+.DS_Store
+.idea/
+.vscode/
