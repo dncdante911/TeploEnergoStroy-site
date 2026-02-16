@@ -81,6 +81,10 @@ app.post('/api/requests', (req, res) => {
   });
 });
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ ok: true });
+});
+
 app.post('/request', (req, res) => {
   const { errors, value } = validateRequest(req.body);
 
