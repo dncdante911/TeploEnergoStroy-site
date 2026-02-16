@@ -30,6 +30,8 @@ function initDb() {
   `);
 }
 
+initDb();
+
 const insertRequestStmt = db.prepare(`
   INSERT INTO requests (
     request_type,
